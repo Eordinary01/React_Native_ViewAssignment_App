@@ -10,11 +10,15 @@ const Home = ({ navigation }) => {
   const [assignments, setAssignments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [userInfo, setUserInfo] = useState(null);
+  const [token, setToken] = useState(null); // Add token state
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchUserInfo = async () => {
-    const token = await AsyncStorage.getItem('token');
-    if (!token) {
+    const storedToken = await AsyncStorage.getItem('token');
+    console.log("Token retrieved:", storedToken); 
+    setToken(storedToken); // Store token in state
+
+    if (!storedToken) {
       console.log("No token found in AsyncStorage");
       setIsLoading(false);
       navigation.navigate('Login');
@@ -25,7 +29,7 @@ const Home = ({ navigation }) => {
       const response = await fetch(`${REACT_APP_API_URL}/auth/auth/user-info`, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${storedToken}`,
           'Content-Type': 'application/json',
         },
       });
@@ -34,7 +38,7 @@ const Home = ({ navigation }) => {
         const data = await response.json();
         console.log("User info received:", data);
         setUserInfo(data);
-        fetchAssignments(token, data.role);
+        fetchAssignments(storedToken, data.role);
       } else {
         console.error('Failed to fetch user information');
         setIsLoading(false);
@@ -47,7 +51,7 @@ const Home = ({ navigation }) => {
     }
   };
 
-  const fetchAssignments = async (token, role) => {
+  const fetchAssignments = async (storedToken, role) => {
     try {
       let url = `${REACT_APP_API_URL}/assignments/assignments`;
       if (role === 'admin') {
@@ -57,7 +61,7 @@ const Home = ({ navigation }) => {
       const response = await fetch(url, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${storedToken}`,
           'Content-Type': 'application/json',
         },
       });
@@ -90,7 +94,7 @@ const Home = ({ navigation }) => {
   const renderAssignment = ({ item }) => (
     <TouchableOpacity
       style={styles.card}
-      onPress={() => navigation.navigate('AssignmentDetails', { assignment: item })}
+      onPress={() => navigation.navigate('AssignmentDetails', { assignment: item, userRole: "admin", token })} // Pass token here
     >
       <Text style={styles.cardTitle}>{item.subject}</Text>
       <Text style={{fontSize:17}}>
@@ -192,6 +196,5 @@ const styles = StyleSheet.create({
     color: '#666',
   },
 });
-
 
 export default Home;
