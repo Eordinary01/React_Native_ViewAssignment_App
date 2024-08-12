@@ -123,6 +123,9 @@ const Register = () => {
             <Text style={styles.messageText}>{message}</Text>
           </View>
         ) : null}
+        <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+          <Text style={styles.loginLink}>Already have an account? Log in here</Text>
+        </TouchableOpacity>
       </View>
     </LinearGradient>
   );
@@ -168,6 +171,8 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 10,
     fontSize: 16,
+     color:"#1c262e"
+    
   },
   button: {
     backgroundColor: '#4F46E5',
@@ -202,6 +207,12 @@ const styles = StyleSheet.create({
   messageText: {
     textAlign: 'center',
     color: '#065F46',
+  },
+  loginLink: {
+    marginTop: 15,
+    color: 'red',
+    textAlign: 'center',
+    textDecorationLine: 'underline',
   },
 });
 

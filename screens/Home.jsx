@@ -1,55 +1,98 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback,useContext } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {jwtDecode} from 'jwt-decode';
 import { REACT_APP_API_URL } from "@env";
 import FooterMenu from '../components/menus/FooterMenu';
 import { useFocusEffect } from '@react-navigation/native';
 import { RefreshControl } from 'react-native-gesture-handler';
+import { AuthContext } from '../App';
 
 const Home = ({ navigation }) => {
+  const { signOut } = useContext(AuthContext);
   const [assignments, setAssignments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [userInfo, setUserInfo] = useState(null);
   const [token, setToken] = useState(null); // Add token state
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchUserInfo = async () => {
+
+const fetchUserInfo = async () => {
+  try {
     const storedToken = await AsyncStorage.getItem('token');
-    console.log("Token retrieved:", storedToken); 
-    setToken(storedToken); // Store token in state
+    console.log("Token retrieved:", storedToken);
+    setToken(storedToken);
 
     if (!storedToken) {
       console.log("No token found in AsyncStorage");
       setIsLoading(false);
-      navigation.navigate('Login');
+      await signOut();
       return;
     }
 
+    // Check token expiration
     try {
-      const response = await fetch(`${REACT_APP_API_URL}/auth/auth/user-info`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${storedToken}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log("User info received:", data);
-        setUserInfo(data);
-        fetchAssignments(storedToken, data.role);
-      } else {
-        console.error('Failed to fetch user information');
-        setIsLoading(false);
-        navigation.navigate('Login');
+      const decodedToken = jwtDecode(storedToken);
+      if (decodedToken.exp * 1000 < Date.now()) {
+        console.log("Token expired, refreshing...");
+        // Implement token refresh logic here
+        // For example: const newToken = await refreshToken(storedToken);
+        // await AsyncStorage.setItem('token', newToken);
+        // setToken(newToken);
+        // storedToken = newToken;
       }
-    } catch (err) {
-      console.error('Failed to fetch user information:', err);
+    } catch (decodeError) {
+      console.error("Error decoding token:", decodeError);
       setIsLoading(false);
-      navigation.navigate('Login');
+      await signOut();
+      return;
     }
-  };
+
+    const maxRetries = 3;
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        const response = await fetch(`${REACT_APP_API_URL}/auth/auth/user-info`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${storedToken}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log("User info received:", data);
+          setUserInfo(data);
+          fetchAssignments(storedToken, data.role);
+          return;
+        } else {
+          console.error(`Failed to fetch user information. Status: ${response.status}`);
+          const errorData = await response.text();
+          console.error(`Error details: ${errorData}`);
+
+          if (response.status === 401) {
+            console.log("Unauthorized access. Token might be invalid.");
+            await signOut();
+            return;
+          }
+        }
+      } catch (err) {
+        console.error(`Attempt ${i + 1} failed. Error:`, err);
+      }
+
+      // Wait before retrying
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+
+    console.error('Failed to fetch user information after multiple attempts');
+    setIsLoading(false);
+    await signOut();
+  } catch (error) {
+    console.error('Unexpected error in fetchUserInfo:', error);
+    setIsLoading(false);
+    await signOut();
+  }
+};
 
   const fetchAssignments = async (storedToken, role) => {
     try {
@@ -94,7 +137,7 @@ const Home = ({ navigation }) => {
   const renderAssignment = ({ item }) => (
     <TouchableOpacity
       style={styles.card}
-      onPress={() => navigation.navigate('AssignmentDetails', { assignment: item, userRole: "admin", token })} // Pass token here
+      onPress={() => navigation.navigate('AssignmentDetails', { assignment: item, userRole: "admin", token })} 
     >
       <Text style={styles.cardTitle}>{item.subject}</Text>
       <Text style={{fontSize:17}}>

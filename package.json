@@ -16,6 +16,8 @@
     "@react-navigation/native-stack": "^6.11.0",
     "axios": "^1.7.3",
     "dotenv": "^16.4.5",
+    "jsonwebtoken": "^9.0.2",
+    "jwt-decode": "^4.0.0",
     "react": "18.2.0",
     "react-native": "0.74.5",
     "react-native-document-picker": "^9.3.0",

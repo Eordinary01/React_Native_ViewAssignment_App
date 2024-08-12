@@ -203,6 +203,7 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     paddingHorizontal: 10,
     fontSize: 16,
+    color:"#1c262e"
   },
   fileButton: {
     backgroundColor: '#6C5CE7',
