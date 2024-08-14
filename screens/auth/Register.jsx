@@ -29,10 +29,9 @@ const Register = () => {
   const handleInputChange = (name, value) => {
     setFormData(prev => ({
       ...prev,
-      [name]: value,
+      [name]: name === 'password' ? value : value.toUpperCase(),
     }));
   };
-
   const handleSubmit = async () => {
     setIsLoading(true);
     try {
@@ -41,7 +40,12 @@ const Register = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          name: formData.name.toUpperCase(),
+          email: formData.email.toUpperCase(),
+          college: formData.college.toUpperCase(),
+        }),
       });
 
       const data = await response.json();

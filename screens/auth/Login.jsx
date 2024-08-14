@@ -34,7 +34,10 @@ const Login = () => {
   }, [isAuthenticated, navigation]);
 
   const handleInputChange = (name, value) => {
-    setFormData(prev => ({...prev, [name]: value}));
+    setFormData(prev => ({
+      ...prev,
+      [name]: name === 'password' ? value : value.toUpperCase(),
+    }));
   };
 
  
@@ -68,21 +71,21 @@ const Login = () => {
     setIsLoading(true);
     setMessage('');
     console.log('Submitting login form...');
-
+  
     try {
-      console.log('Sending request to:', `${REACT_APP_API_URL}/auth/login`);
       const res = await fetch(`${REACT_APP_API_URL}/auth/login`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(formData),
-        credentials: 'include',
+        body: JSON.stringify({
+          ...formData,
+          email: formData.email.toUpperCase(),
+        }),
       });
-
-      console.log('Response status:', res.status);
+  
       const data = await res.json();
       console.log('Response data:', data);
-
-      if (res.ok) {
+  
+      if (res.ok && data.token) {
         console.log('Login successful, signing in...');
         await signIn(data.token);
         setMessage('Login successful!');
@@ -95,11 +98,11 @@ const Login = () => {
       setMessage('Network error. Please check your connection.');
     } finally {
       setIsLoading(false);
-      console.log('Final message:', message);
       fadeMessageIn();
       fadeMessageOut();
     }
   };
+  
 
   return (
     <LinearGradient colors={['#3498db', '#8e44ad']} style={styles.container}>
@@ -112,7 +115,7 @@ const Login = () => {
             placeholder="Enter your email"
             value={formData.email}
             onChangeText={text => handleInputChange('email', text)}
-            autoCapitalize="none"
+            // autoCapitalize="none"
             keyboardType="email-address"
           />
         </View>

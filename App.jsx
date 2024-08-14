@@ -1,9 +1,9 @@
-import React, {useState, useEffect, useContext} from 'react';
-import {GestureHandlerRootView} from 'react-native-gesture-handler';
-import {NavigationContainer} from '@react-navigation/native';
-import {createNativeStackNavigator} from '@react-navigation/native-stack';
+import React, { useState, useEffect, useContext } from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {View, Text, StyleSheet} from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import Login from './screens/auth/Login';
 import Register from './screens/auth/Register';
 import Home from './screens/Home';
@@ -15,7 +15,7 @@ const Stack = createNativeStackNavigator();
 
 export const AuthContext = React.createContext();
 
-const AuthProvider = ({children}) => {
+const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -25,7 +25,7 @@ const AuthProvider = ({children}) => {
 
   const checkAuthStatus = async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
+      const token = await AsyncStorage.getItem('userToken'); // Consistent key
       setIsAuthenticated(!!token);
     } catch (error) {
       console.error('Error checking auth status:', error);
@@ -34,18 +34,19 @@ const AuthProvider = ({children}) => {
     }
   };
 
-  const signIn = async token => {
+  const signIn = async (token) => {
     try {
-      await AsyncStorage.setItem('token', token);
-      setIsAuthenticated(true);
+      await AsyncStorage.setItem('userToken', token); // Consistent key
+      console.log('Token stored successfully:', token);
+      setIsAuthenticated(true); 
     } catch (error) {
-      console.error('Error signing in:', error);
+      console.error('Error storing the token:', error);
     }
   };
 
   const signOut = async () => {
     try {
-      await AsyncStorage.removeItem('token');
+      await AsyncStorage.removeItem('userToken'); // Consistent key
       setIsAuthenticated(false);
     } catch (error) {
       console.error('Error signing out:', error);
@@ -61,7 +62,7 @@ const AuthProvider = ({children}) => {
   }
 
   return (
-    <AuthContext.Provider value={{isAuthenticated, signIn, signOut}}>
+    <AuthContext.Provider value={{ isAuthenticated, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );
@@ -69,7 +70,7 @@ const AuthProvider = ({children}) => {
 
 const AuthenticatedStack = () => (
   <Stack.Navigator
-    screenOptions={({route}) => ({
+    screenOptions={({ route }) => ({
       header: () => <HeaderMenu title={route.name} />,
     })}>
     <Stack.Screen name="Home" component={Home} />
@@ -79,17 +80,17 @@ const AuthenticatedStack = () => (
 );
 
 const UnauthenticatedStack = () => (
-  <Stack.Navigator screenOptions={{headerShown: false}}>
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="Login" component={Login} />
     <Stack.Screen name="Register" component={Register} />
   </Stack.Navigator>
 );
 
 const App = () => {
-  const {isAuthenticated} = useContext(AuthContext);
+  const { isAuthenticated } = useContext(AuthContext);
 
   return (
-    <GestureHandlerRootView>
+    <GestureHandlerRootView style={{ flex: 1 }}>
       <NavigationContainer>
         {isAuthenticated ? <AuthenticatedStack /> : <UnauthenticatedStack />}
       </NavigationContainer>

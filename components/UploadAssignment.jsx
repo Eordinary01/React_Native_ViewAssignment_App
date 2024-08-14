@@ -1,12 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState,useContext } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, ActivityIndicator } from 'react-native';
 import DocumentPicker from 'react-native-document-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { REACT_APP_API_URL } from '@env';
+import { AuthContext } from '../App';
 import FooterMenu from './menus/FooterMenu';
-import Icon from 'react-native-vector-icons/Ionicons'; // Import icons
+import Icon from 'react-native-vector-icons/Ionicons'; 
 
 const UploadAssignment = ({ navigation }) => {
+  const { signOut } = useContext(AuthContext);
+
   const [course, setCourse] = useState('');
   const [branch, setBranch] = useState('');
   const [year, setYear] = useState('');
@@ -34,46 +37,43 @@ const UploadAssignment = ({ navigation }) => {
       Alert.alert('Please fill in all fields and select a file.');
       return;
     }
-  
-    const token = await AsyncStorage.getItem('token');
+
+    const token = await AsyncStorage.getItem('userToken');
+    console.log('Retrieved Token:', token); // Debugging token retrieval
+
     if (!token) {
-      navigation.navigate('Login');
+      console.log('No token found, signing out');
+      signOut();
       return;
     }
-  
+
     setIsLoading(true);
-  
+
     const formData = new FormData();
-    formData.append('course', course);
-    formData.append('branch', branch);
-    formData.append('year', year);
-    formData.append('subject', subject);
+    formData.append('course', course.toUpperCase());
+    formData.append('branch', branch.toUpperCase());
+    formData.append('year', year.toUpperCase());
+    formData.append('subject', subject.toUpperCase());
     formData.append('file', {
       uri: file.uri,
       type: file.type,
       name: file.name,
     });
-  
-    // console.log('Form Data:', formData);
-    // console.log('API URL:', `${REACT_APP_API_URL}/assignemnt/upload`);
-    // console.log('Token:', token);
-  
+
     try {
-      console.log('Sending request...');
       const response = await fetch(`${REACT_APP_API_URL}/assignments/upload`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
         },
         body: formData,
       });
-  
-      // console.log('Response status:', response.status);
-      // console.log('Response headers:', response.headers);
-  
+
       const responseText = await response.text();
+      console.log('Response status:', response.status);
       console.log('Response text:', responseText);
-  
+
       if (response.ok) {
         Alert.alert('Assignment uploaded successfully');
         navigation.navigate('Home');
@@ -102,6 +102,7 @@ const UploadAssignment = ({ navigation }) => {
         <Icon name="book-outline" size={20} color="#6C5CE7" style={styles.inputIcon} />
         <TextInput
           style={styles.input}
+          placeholderTextColor="black"
           placeholder="Course"
           value={course}
           onChangeText={setCourse}
@@ -113,6 +114,7 @@ const UploadAssignment = ({ navigation }) => {
         <TextInput
           style={styles.input}
           placeholder="Branch"
+           placeholderTextColor="black"
           value={branch}
           onChangeText={setBranch}
         />
@@ -123,6 +125,7 @@ const UploadAssignment = ({ navigation }) => {
         <TextInput
           style={styles.input}
           placeholder="Year"
+           placeholderTextColor="black"
           value={year}
           onChangeText={setYear}
         />
@@ -133,6 +136,7 @@ const UploadAssignment = ({ navigation }) => {
         <TextInput
           style={styles.input}
           placeholder="Subject"
+           placeholderTextColor="black"
           value={subject}
           onChangeText={setSubject}
         />
@@ -186,7 +190,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#ddd',
-    backgroundColor: '#fff',
+    backgroundColor: '#ffffff',
     borderRadius: 8,
     marginBottom: 15,
     shadowColor: '#000',

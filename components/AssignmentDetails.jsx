@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { REACT_APP_API_URL } from '@env';
-import RNFS from 'react-native-fs';
+// import RNFS from 'react-native-fs';
+import RNFetchBlob from 'rn-fetch-blob';
 import FooterMenu from './menus/FooterMenu';
 import EditModal from './menus/EditModal';
 
@@ -51,26 +52,36 @@ const AssignmentDetails = ({ route, navigation}) => {
   const handleDownload = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${REACT_APP_API_URL}${assignment.fileUrl}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to download the assignment.');
-      }
-
       const fileName = assignment.fileUrl.split('/').pop();
-      const path = `${RNFS.DocumentDirectoryPath}/${fileName}`;
-
-      const fileData = await response.text();
-      await RNFS.writeFile(path, fileData, 'utf8');
-
-      Alert.alert('Success', `File downloaded successfully to ${path}`);
+      const downloadUrl = `${REACT_APP_API_URL}/assignments/uploads/${fileName}`;
+      console.log(`Attempting to download from: ${downloadUrl}`);
+  
+      const response = await RNFetchBlob.config({
+        fileCache: true,
+        appendExt: 'pdf',
+      }).fetch('GET', downloadUrl, {
+        'Authorization': `Bearer ${token}`,
+      });
+  
+      console.log('Response status:', response.respInfo.status);
+      console.log('Response headers:', response.respInfo.headers);
+  
+      if (response.respInfo.status !== 200) {
+        throw new Error(`Failed to download the assignment. Status: ${response.respInfo.status}`);
+      }
+  
+      const path = response.path();
+      console.log(`File downloaded to: ${path}`);
+  
+      // Move the file to a permanent location if needed
+      const permanentPath = `${RNFetchBlob.fs.dirs.DocumentDir}/${fileName}`;
+      await RNFetchBlob.fs.mv(path, permanentPath);
+  
+      console.log('File moved successfully to:', permanentPath);
+      Alert.alert('Success', `File downloaded successfully to ${permanentPath}`);
     } catch (err) {
-      Alert.alert('Error', err.message);
       console.error('Download error:', err);
+      Alert.alert('Error', `Download failed: ${err.message}`);
     } finally {
       setIsLoading(false);
     }
@@ -81,8 +92,7 @@ const AssignmentDetails = ({ route, navigation}) => {
   };
 
   const onEditComplete = (updatedAssignment) => {
-    // Handle the updated assignment data here
-    // You might want to update the local state or refetch the assignment
+    
     setShowEditModal(false);
     Alert.alert('Success', 'Assignment updated successfully');
   };
@@ -109,7 +119,7 @@ const AssignmentDetails = ({ route, navigation}) => {
           )}
         </TouchableOpacity>
 
-        {userRole === 'admin' && (
+        {userRole === 'ADMIN' && (
           <>
             <TouchableOpacity style={styles.button} onPress={handleEdit}>
               <Icon name="edit" size={24} color="#6fa8dc" />
